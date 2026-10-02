@@ -1,0 +1,18 @@
+[package]
+name = "dlib-rs-image"
+description = "Image layer of dlib-rs: pixels, codecs, transforms, FHOG/HOG/SURF keypoints (port of dlib)"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+dlib-rs-core.workspace = true
+num-traits.workspace = true
+rayon.workspace = true
+thiserror.workspace = true
+png = "0.18"
+zune-jpeg = "0.4"
+image-webp = "0.2"
+jpeg-encoder = "0.6"

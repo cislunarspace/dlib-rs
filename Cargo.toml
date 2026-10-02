@@ -1,0 +1,23 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "BSL-1.0"
+repository = "https://github.com/cislunarspace/dlib-rs"
+homepage = "https://github.com/cislunarspace/dlib-rs"
+readme = "README.md"
+
+[workspace.dependencies]
+num-traits = "0.2"
+rayon = "1.10"
+thiserror = "2"
+
+dlib-rs-core = { path = "crates/dlib-rs-core", version = "0.1.0" }
+dlib-rs-image = { path = "crates/dlib-rs-image", version = "0.1.0" }
+dlib-rs-ml = { path = "crates/dlib-rs-ml", version = "0.1.0" }
+
+[profile.release]
+debug = false

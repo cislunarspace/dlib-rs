@@ -1,0 +1,13 @@
+[package]
+name = "dlib-rs-core"
+description = "Core layer of dlib-rs: matrix linear algebra, geometry, rand, binary serialization (port of dlib)"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+num-traits.workspace = true
+rayon.workspace = true
+thiserror.workspace = true

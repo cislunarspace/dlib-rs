@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test-native:
+    name: test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace --release
+
+  test-arm-linux:
+    name: test (${{ matrix.arch }}-linux)
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [armv7, aarch64]
+        include:
+          - arch: armv7
+            distro: ubuntu22.04
+          - arch: aarch64
+            distro: ubuntu22.04
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: uraimo/run-on-arch-action@v2
+        with:
+          arch: ${{ matrix.arch }}
+          distro: ${{ matrix.distro }}
+          githubToken: ${{ github.token }}
+          dockerRunArgs: |
+            --volume "${GITHUB_WORKSPACE}:/work"
+          shell: /bin/bash
+          install: |
+            apt-get update && apt-get install -y --no-install-recommends curl ca-certificates build-essential
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+          run: |
+            cd /work
+            export PATH="$HOME/.cargo/bin:$PATH"
+            cargo test --workspace --release
+
+  check-windows-arm64:
+    name: check (aarch64-pc-windows-msvc)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check --workspace --target aarch64-pc-windows-msvc

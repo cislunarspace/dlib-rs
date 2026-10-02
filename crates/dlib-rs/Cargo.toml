@@ -1,0 +1,14 @@
+[package]
+name = "dlib-rs"
+description = "Pure-Rust port of the core of dlib (matrix, images, ML, face detection & landmarks)"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
+
+[dependencies]
+dlib-rs-core.workspace = true
+dlib-rs-image.workspace = true
+dlib-rs-ml.workspace = true
