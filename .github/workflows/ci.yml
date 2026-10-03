@@ -30,8 +30,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [armv7, aarch64]
         include:
+          - arch: aarch64
+            distro: ubuntu24.04
+          - arch: armv7
+            distro: ubuntu24.04
           - arch: armv7
             distro: ubuntu22.04
           - arch: aarch64
@@ -53,6 +56,8 @@ jobs:
           run: |
             cd /work
             export PATH="$HOME/.cargo/bin:$PATH"
+            # QEMU-emulated builds are memory hungry; limit linker pressure
+            export CARGO_BUILD_JOBS=2
             cargo test --workspace --release
 
   check-windows-arm64:
