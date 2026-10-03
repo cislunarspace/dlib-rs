@@ -1,0 +1,19 @@
+
+**************************** FATAL ERROR DETECTED ****************************
+
+Error detected at line 3375.
+Error detected in file /home/ouyangjiahong/codes/dlib-install/include/dlib/optimization/optimization_bobyqa.h.
+Error detected in function double dlib::find_min_bobyqa(const funct&, T&, long int, const U&, const U&, double, double, long int) [with funct = double(const matrix<double, 2, 1, memory_manager_stateless_kernel_1<char>, row_major_layout>&); T = matrix<double, 2, 1, memory_manager_stateless_kernel_1<char>, row_major_layout>; U = matrix<double, 2, 1, memory_manager_stateless_kernel_1<char>, row_major_layout>].
+
+Failing expression was x.size() + 2 <= npt && npt <= (x.size()+1)*(x.size()+2)/2 && 0 < rho_end && rho_end < rho_begin && min(x_upper - x_lower) > 2*rho_begin && min(x - x_lower) >= 0 && min(x_upper - x) >= 0.
+	double find_min_bobyqa()
+	 Invalid arguments have been given to this function
+	 ntp in valid range: true
+	 npt:                5
+	 rho_begin:          1
+	 rho_end:            1e-09
+	 min(x_upper - x_lower) > 2*rho_begin:           false
+	 min(x - x_lower) >= 0 && min(x_upper - x) >= 0: false
+
+******************************************************************************
+
