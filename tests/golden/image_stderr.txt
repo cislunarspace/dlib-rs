@@ -1,0 +1,1 @@
+error: command not found: ./golden/build/image_golden
