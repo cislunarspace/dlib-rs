@@ -46,6 +46,22 @@ fn check_exact(want: &str, got: impl FnOnce() -> f64, ctx: &str) {
     assert_eq!(g.to_bits(), w.to_bits(), "{ctx}: got {g:e} want {w:e}");
 }
 
+/// For draws that pass through libm transcendentals (sqrt/log/pow) the
+/// golden values come from Linux glibc; MSVC's libm may differ by one ulp,
+/// which dlib's own C++ builds also exhibit across platforms.
+fn check_ulp1(want: &str, got: impl FnOnce() -> f64, ctx: &str) {
+    let w: f64 = want.parse().unwrap();
+    let g = got();
+    let up = f64::from_bits(w.to_bits() + 1);
+    let down = f64::from_bits(w.to_bits() - 1);
+    assert!(
+        g == w || g == up || g == down,
+        "{ctx}: got {g:e} want {w:e} (bits {} vs {})",
+        g.to_bits(),
+        w.to_bits()
+    );
+}
+
 #[test]
 fn golden_rand_draws() {
     let text = load();
@@ -60,7 +76,7 @@ fn golden_rand_draws() {
     let want = read_block(&mut lines, "gaussians []", 10_000);
     let mut r = Rand::new();
     for (i, w) in want.iter().enumerate() {
-        check_exact(
+        check_ulp1(
             w,
             || r.get_random_gaussian(),
             &format!("gaussians[\"\"] #{i}"),
@@ -80,7 +96,7 @@ fn golden_rand_draws() {
         let want = read_block(&mut lines, &format!("gaussians [{seed}]"), 1_000);
         let mut r = Rand::with_seed(seed);
         for (i, w) in want.iter().enumerate() {
-            check_exact(
+            check_ulp1(
                 w,
                 || r.get_random_gaussian(),
                 &format!("gaussians[{seed}] #{i}"),
@@ -137,7 +153,7 @@ fn golden_rand_draws() {
     }
     let want = read_block(&mut lines, "exponential [42]", 100);
     for (i, w) in want.iter().enumerate() {
-        check_exact(
+        check_ulp1(
             w,
             || r.get_random_exponential(1.7),
             &format!("exponential #{i}"),
@@ -145,7 +161,7 @@ fn golden_rand_draws() {
     }
     let want = read_block(&mut lines, "weibull [42]", 100);
     for (i, w) in want.iter().enumerate() {
-        check_exact(
+        check_ulp1(
             w,
             || r.get_random_weibull(2.2, 1.3, 0.4),
             &format!("weibull #{i}"),
@@ -153,7 +169,7 @@ fn golden_rand_draws() {
     }
     let want = read_block(&mut lines, "beta [42]", 100);
     for (i, w) in want.iter().enumerate() {
-        check_exact(w, || r.get_random_beta(2.5, 3.5), &format!("beta #{i}"));
+        check_ulp1(w, || r.get_random_beta(2.5, 3.5), &format!("beta #{i}"));
     }
 }
 
