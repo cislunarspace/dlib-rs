@@ -372,11 +372,15 @@ where
             let vx1 = 1.0 - vx0;
 
             // Add the gradient magnitude v to the 4 histograms around the
-            // pixel using bilinear interpolation.
-            let v11 = vy1 * vx1 * v;
-            let v01 = vy0 * vx1 * v;
-            let v10 = vy1 * vx0 * v;
-            let v00 = vy0 * vx0 * v;
+            // pixel using bilinear interpolation. dlib folds v into the x
+            // fractions FIRST (vx1 *= v; vx0 *= v), then multiplies by vy —
+            // keep that association for bit-exactness.
+            let vx1 = vx1 * v;
+            let vx0 = vx0 * v;
+            let v11 = vy1 * vx1;
+            let v01 = vy0 * vx1;
+            let v10 = vy1 * vx0;
+            let v00 = vy0 * vx0;
             let base = ((iyp + 1) * hist_nc + ixp + 1) as usize;
             hist[base][best_o] += v11;
             hist[base + hist_nc as usize][best_o] += v01;
@@ -424,26 +428,43 @@ where
 
             let center = hst(y + 1, x + 1);
             let mut t = [0.0f32; 4];
+            // dlib sums simd4f lanes as (l0 + l2) + (l1 + l3) (the SSE2
+            // movehl/shuffle horizontal add) — replicate exactly.
+            let hsum = |h: [f32; 4]| (h[0] + h[2]) + (h[1] + h[3]);
 
-            // contrast-sensitive features
-            for (o, &co) in center.iter().enumerate() {
-                let mut acc = 0.0f32;
+            // contrast-sensitive features: dlib processes orientations in
+            let mut o = 0usize;
+            while o < 18 {
+                let h0 = center[o];
+                let h1 = center[o + 1];
+                let h2 = center[o + 2];
+                let hk = |co: f32| {
+                    let mut h = [0.0f32; 4];
+                    for k in 0..4 {
+                        h[k] = co.min(nn[k]) * nv[k];
+                    }
+                    h
+                };
+                let ha = hk(h0);
+                let hb = hk(h1);
+                let hc = hk(h2);
                 for k in 0..4 {
-                    let h = co.min(nn[k]) * nv[k];
-                    t[k] += h;
-                    acc += h;
+                    t[k] += (ha[k] + hb[k]) + hc[k];
                 }
-                hog.data[o * out_nr * out_nc + yy * out_nc + xx] = acc;
+                hog.data[o * out_nr * out_nc + yy * out_nc + xx] = hsum(ha);
+                hog.data[(o + 1) * out_nr * out_nc + yy * out_nc + xx] = hsum(hb);
+                hog.data[(o + 2) * out_nr * out_nc + yy * out_nc + xx] = hsum(hc);
+                o += 3;
             }
 
             // contrast-insensitive features
             for o in 0..9 {
                 let v = center[o] + center[o + 9];
-                let mut acc = 0.0f32;
+                let mut h = [0.0f32; 4];
                 for k in 0..4 {
-                    acc += v.min(nn[k]) * nv[k];
+                    h[k] = v.min(nn[k]) * nv[k];
                 }
-                hog.data[(o + 18) * out_nr * out_nc + yy * out_nc + xx] = acc;
+                hog.data[(o + 18) * out_nr * out_nc + yy * out_nc + xx] = hsum(h);
             }
 
             // texture features: t *= 2*0.2357
@@ -541,12 +562,12 @@ where
             let a = ang(y + 1, x + 1) as usize;
 
             let mut t = [0.0f32; 4];
-            let mut vv = 0.0f32;
+            let mut h = [0.0f32; 4];
             for k in 0..4 {
-                let h = temp0.min(nn[k]) * nv[k];
-                t[k] = h;
-                vv += h;
+                h[k] = temp0.min(nn[k]) * nv[k];
+                t[k] = h[k];
             }
+            let vv = (h[0] + h[2]) + (h[1] + h[3]);
             hog.data[a * out_nr * out_nc + yy * out_nc + xx] = vv;
             hog.data[(a % 9 + 18) * out_nr * out_nc + yy * out_nc + xx] = vv;
 

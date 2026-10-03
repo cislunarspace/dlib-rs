@@ -5,6 +5,7 @@
 pub mod array2d;
 pub mod image_keypoint;
 pub mod image_loader;
+pub mod image_processing;
 pub mod image_saver;
 pub mod image_transforms;
 pub mod pixel;

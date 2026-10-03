@@ -89,6 +89,7 @@ name = "dlib-rs-image"
 version = "0.1.0"
 dependencies = [
  "dlib-rs-core",
+ "dlib-rs-ml",
  "image-webp",
  "jpeg-encoder",
  "num-traits",

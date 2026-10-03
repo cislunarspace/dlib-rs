@@ -397,9 +397,10 @@ where
 /// - `N == 2` and `N == 3` use dlib's hand-written 5x5 / 3x3 gaussian filters
 ///   with decimation (`pyramid_down_2_1` / `pyramid_down_3_2`).
 /// - `N >= 4` is the generic template: resize the image to
-///   `lround((N-1)*rows/N) x lround((N-1)*cols/N)` with bilinear
-///   interpolation (rate `(N-1)/N`; the default `pyramid_down<6>` has rate
-///   5/2 = 2.5x downsampling per level).
+///   `((N-1)*rows)/N x ((N-1)*cols)/N` (integer division, as in dlib's
+///   `std::lround(((N-1)*num_rows(original))/N)` with long arithmetic) with
+///   bilinear interpolation (rate `(N-1)/N`; `pyramid_down<6>` is the
+///   face-detector default).
 #[derive(Clone, Copy, Debug, Default)]
 pub struct PyramidDown<const N: usize>;
 
@@ -430,14 +431,10 @@ impl<const N: usize> PyramidDown<N> {
             2 => (((n as i64) - 3) / 2).max(0) as usize,
             3 => (2 * ((n as i64) - 2) / 3).max(0) as usize,
             _ => {
-                // std::lround(((N-1)*n)/N): rounds half away from zero.
-                let v = ((N as f64 - 1.0) * n as f64) / N as f64;
-                let r = v.round();
-                if r < 0.0 {
-                    0
-                } else {
-                    r as usize
-                }
+                // dlib: std::lround(((N-1)*num_rows(img))/N) where the
+                // numerator is INTEGER arithmetic (long * long), so the
+                // division truncates before lround ever sees it.
+                (((N as i64 - 1) * (n as i64)) / N as i64).max(0) as usize
             }
         }
     }
@@ -925,10 +922,12 @@ mod tests {
 
     #[test]
     fn test_pyramid_down_dims() {
-        // lround(5*9/6) = lround(7.5) = 8
-        assert_eq!(PyramidDown::<6>::nr(9), 8);
-        assert_eq!(PyramidDown::<6>::nc(9), 8);
+        // dlib uses long arithmetic: ((N-1)*n)/N truncated (45/6 = 7).
+        assert_eq!(PyramidDown::<6>::nr(9), 7);
+        assert_eq!(PyramidDown::<6>::nc(9), 7);
         assert_eq!(PyramidDown::<6>::nr(12), 10);
+        assert_eq!(PyramidDown::<6>::nr(375), 312);
+        assert_eq!(PyramidDown::<6>::nr(500), 416);
         assert_eq!(PyramidDown::<2>::nr(21), 9);
         assert_eq!(PyramidDown::<3>::nr(12), 6);
         assert_eq!(PyramidDown::<1>::nr(100), 0);
@@ -943,11 +942,11 @@ mod tests {
         let img: Array2D<u8> = mkimg(nr, nc, data.clone());
         let mut out: Array2D<u8> = Array2D::zeros(1, 1);
         PyramidDown::<6>::new().apply(&img, &mut out);
-        assert_eq!(out.nr(), 8);
-        assert_eq!(out.nc(), 8);
+        assert_eq!(out.nr(), 7);
+        assert_eq!(out.nc(), 7);
 
-        // out(4,4): x = y = 4 * 8/7; bilinear with clamped edges
-        let scale = 8.0f64 / 7.0;
+        // out is 7x7 now; out(4,4): x_scale = (9-1)/(7-1) = 8/6
+        let scale = 8.0f64 / 6.0;
         let y = 4.0 * scale;
         let top = y.floor() as usize;
         let bottom = (top + 1).min(nr - 1);
